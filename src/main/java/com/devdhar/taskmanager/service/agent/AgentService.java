@@ -25,9 +25,6 @@ import java.util.Map;
  * 4 tools to invoke and with what arguments, executes that exact function against
  * TaskService (never anything the model "wants" beyond that), and logs the whole
  * interaction to MongoDB for audit/debugging.
- *
- * This is the piece to be able to explain end-to-end in an interview:
- * command -> LLM picks tool + extracts args -> WE validate + execute -> log -> respond.
  */
 @Service
 @RequiredArgsConstructor

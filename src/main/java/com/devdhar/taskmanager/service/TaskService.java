@@ -90,8 +90,8 @@ public class TaskService {
         taskRepository.delete(task);
     }
 
-    // Ensures a user can only ever fetch/modify their OWN tasks -> the actual
-    // enforcement point for "user-scoped" access, referenced in the resume bullet.
+    // Single enforcement point for user-scoped access: a user can only ever
+    // fetch or modify their own tasks.
     private Task findOwnedTask(Long taskId) {
         Long userId = authUtils.getCurrentUserId();
         Task task = taskRepository.findById(taskId)
