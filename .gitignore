@@ -1,0 +1,7 @@
+﻿target/
+.idea/
+*.iml
+.env
+application-local.properties
+repomix-output*.xml
+*-repomix.xml
