@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -46,9 +47,10 @@ public class LlmClient {
                                 "role", "system",
                                 "content", "You are an assistant that manages the user's tasks. "
                                         + "Always respond by calling exactly one of the provided tools "
-                                        + "that best matches the user's request. Today's date context "
-                                        + "should be inferred from the user's message when they mention "
-                                        + "relative dates like 'Friday' or 'tomorrow'."
+                                        + "that best matches the user's request. Today's date is "
+                                        + LocalDate.now() + " (" + LocalDate.now().getDayOfWeek() + "). "
+                                        + "Resolve relative dates such as 'Friday' or 'tomorrow' against that date, "
+                                        + "and always emit dueDate as YYYY-MM-DD."
                         ),
                         Map.of("role", "user", "content", userCommand)
                 ),
