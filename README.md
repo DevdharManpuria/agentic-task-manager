@@ -1,111 +1,96 @@
 # Agentic Task Manager
 
-A Spring Boot REST API for task management with:
-- JWT-secured, user-scoped authentication (Spring Security)
-- Full CRUD + filtering + pagination over tasks (MySQL, JPA/Hibernate)
-- An agentic AI command endpoint: natural-language input -> LLM function-calling ->
-  automatic dispatch to the correct CRUD operation
-- Polyglot persistence: MySQL for relational user/task data, MongoDB for agent
-  interaction logs
+A Spring Boot task-management API with two ways in: a conventional REST interface, and a
+natural-language endpoint where an LLM chooses which operation to run via tool calling.
 
-## Prerequisites
+Both paths go through the same service layer, so the agent has no privileged route to the
+database — it can only propose a call that the application then validates and executes.
 
-- Java 21
-- Maven
-- MySQL running locally (or update `spring.datasource.*` in `application.properties`)
-- MongoDB running locally (or update `spring.data.mongodb.uri`)
-- An LLM API key that supports function/tool calling (OpenAI, or adapt `LlmClient`
-  for Gemini/Anthropic)
+## Stack
 
-## Setup
+- Java 21, Spring Boot 3.3.4, Maven
+- Spring Security with JWT (jjwt 0.12.6), BCrypt password hashing
+- Spring Data JPA + MySQL for users and tasks
+- Spring Data MongoDB for agent interaction logs
+- WebClient (Spring WebFlux) for the LLM call
+- springdoc-openapi for API docs
 
-1. Clone/open this project.
-2. In `src/main/resources/application.properties`:
-   - Set your MySQL username/password (the DB itself is auto-created).
-   - Set your MongoDB URI if not running on default localhost.
-   - Set `app.llm.api-key` to your real API key.
-   - A JWT secret is already generated for you, but for production/anything public,
-     regenerate your own with: `openssl rand -base64 32`
-3. Run: `mvn spring-boot:run`
-4. App starts on `http://localhost:8080`
-5. Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+## Running it
 
-## Testing the flow end-to-end (Postman or curl)
+Requires Java 21, Maven, and local MySQL and MongoDB instances.
 
-### 1. Register
-```
-POST /api/auth/register
-{
-  "username": "devdhar",
-  "email": "devdhar@example.com",
-  "password": "password123"
-}
-```
-Response includes a `token` - copy it.
+Set these environment variables before starting:
 
-### 2. Use the token on every subsequent request
-```
-Authorization: Bearer <token>
+```bash
+export DB_USERNAME=root
+export DB_PASSWORD=<your mysql password>
+export JWT_SECRET=$(openssl rand -base64 32)
+export LLM_API_KEY=<key for any OpenAI-compatible chat-completions endpoint>
 ```
 
-### 3. Create a task manually
-```
-POST /api/tasks
-{
-  "title": "Finish resume",
-  "priority": "HIGH",
-  "dueDate": "2026-09-01"
-}
+`app.llm.api-url` and `app.llm.model` in `application.properties` are set to a
+Groq-hosted model by default; any provider exposing the OpenAI chat-completions
+shape works without code changes.
+
+```bash
+mvn spring-boot:run
 ```
 
-### 4. List tasks with filtering + pagination
-```
-GET /api/tasks?status=PENDING&page=0&size=10
-```
+The app starts on `http://localhost:8080`. The MySQL schema is created automatically.
+Swagger UI is at `/swagger-ui/index.html`.
 
-### 5. Use the agent endpoint
-```
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/auth/register` | Create an account, returns a JWT |
+| POST | `/api/auth/login` | Authenticate, returns a JWT |
+| POST | `/api/tasks` | Create a task |
+| GET | `/api/tasks/{id}` | Fetch one task |
+| GET | `/api/tasks` | List tasks, filterable by `status` and `priority`, paginated |
+| PUT | `/api/tasks/{id}` | Update a task (partial — unset fields are left alone) |
+| DELETE | `/api/tasks/{id}` | Delete a task |
+| POST | `/api/agent/command` | Natural-language command, dispatched via LLM tool calling |
+
+Every endpoint except the two auth routes requires `Authorization: Bearer <token>`.
+
+Example agent command:
+
+```json
 POST /api/agent/command
-{
-  "command": "remind me to finish the report by Friday"
-}
-```
-This should:
-- Call the LLM with your 4 tool schemas
-- Get back a `createTask` tool call with extracted title/dueDate
-- Execute it against the real TaskService
-- Log the interaction to MongoDB (`agent_interaction_logs` collection)
-- Return which tool was used and the result
-
-Try also:
-```
-{ "command": "what tasks do I have?" }
-{ "command": "mark task 1 as completed" }
-{ "command": "delete task 1" }
+{ "command": "remind me to finish the report by Friday" }
 ```
 
-## Known limitation worth knowing about (be ready to discuss this)
+The model selects one of four tools (`createTask`, `updateTask`, `deleteTask`,
+`listTasks`), the application executes it against `TaskService`, and the interaction is
+written to the `agent_interaction_logs` collection in MongoDB.
 
-The LLM is instructed to resolve relative dates ("Friday", "tomorrow") into
-YYYY-MM-DD itself. This mostly works but isn't 100% reliable - it depends on the
-model's training and the system prompt. A more robust version would resolve
-relative dates in Java code (e.g. with a small date-parsing library) rather than
-trusting the LLM's date math. This is a good thing to mention proactively in an
-interview: it shows you understand the tradeoff between "let the model handle it"
-and "constrain it with code," which is a real, current debate in agentic system
-design.
+## Design notes
 
-## Architecture notes for interview prep
+**Authentication.** `JwtAuthFilter` extends `OncePerRequestFilter` and runs ahead of
+`UsernamePasswordAuthenticationFilter`. It validates the bearer token and populates the
+`SecurityContext`. No session state is held server-side.
 
-- **Auth flow**: JwtAuthFilter runs once per request, extracts + validates the JWT,
-  and populates SecurityContext - no server-side session state (stateless).
-- **User scoping**: every Task query/mutation goes through `findOwnedTask`, which
-  checks `task.getUser().getId()` against the authenticated user's id.
-- **Agent flow**: user command -> LlmClient sends it + tool schemas to the LLM ->
-  LLM returns a tool_call (name + arguments) -> AgentService.dispatch() maps that
-  to the exact same TaskService methods the REST API uses -> result logged to Mongo.
-  The LLM never touches the database directly - it only ever proposes a function
-  call which our own code decides whether/how to execute.
-- **Why MongoDB for logs**: the shape of "tool arguments" differs per tool
-  (createTask has title/dueDate, deleteTask has just an id) - a flexible document
-  avoids either a wide nullable-column table or one table per tool in MySQL.
+**Ownership.** Every task read or mutation routes through `findOwnedTask`, which compares
+the task's owner against the authenticated user. A mismatch returns 404 rather than 403,
+so one user cannot probe for the existence of another user's task IDs.
+
+**Filtering.** `listTasks` builds a JPA `Specification` from whichever subset of
+`status` and `priority` the caller supplied, always ANDed with the current user's ID,
+then applies the incoming `Pageable`.
+
+**Why MongoDB for logs.** Tool arguments have a different shape per tool — `createTask`
+carries a title and due date, `deleteTask` carries only an ID. A document store avoids
+either a wide nullable-column table or one table per tool.
+
+## Limitations
+
+- Relative dates are resolved by the model rather than in application code. The current
+  date is injected into the system prompt, which works in practice, but constraining this
+  with a date-parsing library in Java would be more reliable than trusting the model's
+  arithmetic.
+- The agent endpoint has no rate limiting, and each call costs an upstream API request.
+- Tokens have no refresh mechanism; a token is valid for 24 hours and cannot be revoked
+  before expiry.
+- Conversation history is not carried between agent commands — each command is resolved
+  independently, so follow-ups like "actually make that high priority" will not work.
