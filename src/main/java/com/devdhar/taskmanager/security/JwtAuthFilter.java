@@ -18,11 +18,11 @@ import java.io.IOException;
 /**
  * Runs once per incoming request, BEFORE it reaches any controller.
  *
- * Steps (this is the exact sequence to explain in an interview):
+ * Steps :
  * 1. Look for "Authorization: Bearer <token>" header. If missing, let the request
  *    continue unauthenticated (Spring Security will reject it later if the endpoint
  *    requires auth).
- * 2. Extract the username from the token WITHOUT yet trusting it fully.
+ * 2. Parse the token (jjwt verifies signature and expiry) and read the username.
  * 3. Load the real UserDetails for that username from the DB.
  * 4. Ask JwtService to verify the token's signature and expiry against that user.
  * 5. If valid, manually populate the SecurityContext with an authenticated token,

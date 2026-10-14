@@ -16,7 +16,7 @@ import java.util.function.Function;
  * Handles everything JWT: generating a signed token on login, and later
  * parsing + validating that token on every incoming request.
  *
- * Flow to understand for the interview:
+ * Flow :
  * 1. On login, we generate a token signed with our secret key, containing the
  *    username as the "subject" and an expiry.
  * 2. The client sends that token back in the Authorization: Bearer <token> header
