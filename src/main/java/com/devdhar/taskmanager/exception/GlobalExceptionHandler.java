@@ -1,5 +1,6 @@
 package com.devdhar.taskmanager.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -17,6 +18,7 @@ import java.util.Map;
  * structured JSON responses instead of raw stack traces or generic 500s.
  * This is what a caller (or the LLM agent's function-calling logic) sees on failure.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -51,7 +53,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong: " + ex.getMessage());
+        // Full detail (message + stack trace) goes to the server log only.
+        // The client gets a fixed message so internals never leak.
+        log.error("Unhandled exception", ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later.");
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
