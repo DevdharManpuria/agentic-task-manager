@@ -3,6 +3,7 @@ package com.devdhar.taskmanager.service.agent;
 import com.devdhar.taskmanager.dto.AgentDtos.CommandResponse;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskRequest;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskResponse;
+import com.devdhar.taskmanager.dto.TaskDtos.TaskUpdateRequest;
 import com.devdhar.taskmanager.entity.AgentInteractionLog;
 import com.devdhar.taskmanager.entity.Task;
 import com.devdhar.taskmanager.repository.AgentInteractionLogRepository;
@@ -86,7 +87,7 @@ public class AgentService {
             ));
             case "updateTask" -> taskService.updateTask(
                     toLong(args.get("taskId")),
-                    new TaskRequest(
+                    new TaskUpdateRequest(
                             (String) args.get("title"),
                             (String) args.get("description"),
                             parseStatus(args.get("status")),

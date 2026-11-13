@@ -2,6 +2,7 @@ package com.devdhar.taskmanager.service;
 
 import com.devdhar.taskmanager.dto.TaskDtos.TaskRequest;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskResponse;
+import com.devdhar.taskmanager.dto.TaskDtos.TaskUpdateRequest;
 import com.devdhar.taskmanager.entity.Task;
 import com.devdhar.taskmanager.entity.User;
 import com.devdhar.taskmanager.exception.ResourceNotFoundException;
@@ -69,7 +70,7 @@ public class TaskService {
     }
 
     @Transactional
-    public TaskResponse updateTask(Long taskId, TaskRequest request) {
+    public TaskResponse updateTask(Long taskId, TaskUpdateRequest request) {
         Task task = findOwnedTask(taskId);
 
         // Partial update: only overwrite fields that were actually provided.

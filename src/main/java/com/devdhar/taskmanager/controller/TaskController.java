@@ -2,6 +2,7 @@ package com.devdhar.taskmanager.controller;
 
 import com.devdhar.taskmanager.dto.TaskDtos.TaskRequest;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskResponse;
+import com.devdhar.taskmanager.dto.TaskDtos.TaskUpdateRequest;
 import com.devdhar.taskmanager.entity.Task;
 import com.devdhar.taskmanager.service.TaskService;
 import jakarta.validation.Valid;
@@ -39,7 +40,7 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TaskResponse> updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequest request) {
+    public ResponseEntity<TaskResponse> updateTask(@PathVariable Long id, @Valid @RequestBody TaskUpdateRequest request) {
         return ResponseEntity.ok(taskService.updateTask(id, request));
     }
 

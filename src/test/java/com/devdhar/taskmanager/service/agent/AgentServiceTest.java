@@ -3,6 +3,7 @@ package com.devdhar.taskmanager.service.agent;
 import com.devdhar.taskmanager.dto.AgentDtos.CommandResponse;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskRequest;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskResponse;
+import com.devdhar.taskmanager.dto.TaskDtos.TaskUpdateRequest;
 import com.devdhar.taskmanager.entity.AgentInteractionLog;
 import com.devdhar.taskmanager.entity.Task;
 import com.devdhar.taskmanager.exception.ResourceNotFoundException;
@@ -136,13 +137,13 @@ class AgentServiceTest {
         when(authUtils.getCurrentUserId()).thenReturn(USER_ID);
         when(llmClient.requestToolCall("mark task 7 as done")).thenReturn(
                 toolCallResponse("updateTask", "{\"taskId\":7,\"status\":\"COMPLETED\"}"));
-        when(taskService.updateTask(eq(7L), any(TaskRequest.class))).thenReturn(sampleTask());
+        when(taskService.updateTask(eq(7L), any(TaskUpdateRequest.class))).thenReturn(sampleTask());
 
         CommandResponse response = agentService.processCommand("mark task 7 as done");
 
-        ArgumentCaptor<TaskRequest> requestCaptor = ArgumentCaptor.forClass(TaskRequest.class);
+        ArgumentCaptor<TaskUpdateRequest> requestCaptor = ArgumentCaptor.forClass(TaskUpdateRequest.class);
         verify(taskService).updateTask(eq(7L), requestCaptor.capture());
-        TaskRequest sent = requestCaptor.getValue();
+        TaskUpdateRequest sent = requestCaptor.getValue();
         assertEquals(Task.TaskStatus.COMPLETED, sent.status());
         assertNull(sent.title());
         assertNull(sent.description());

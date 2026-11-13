@@ -16,6 +16,16 @@ public class TaskDtos {
             @Future(message = "Due date must be in the future") LocalDate dueDate
     ) {}
 
+    // Partial update: every field is optional, null means "leave unchanged".
+    // Kept separate from TaskRequest so create can require a title while update does not.
+    public record TaskUpdateRequest(
+            String title,
+            String description,
+            Task.TaskStatus status,
+            Task.TaskPriority priority,
+            @Future(message = "Due date must be in the future") LocalDate dueDate
+    ) {}
+
     public record TaskResponse(
             Long id,
             String title,

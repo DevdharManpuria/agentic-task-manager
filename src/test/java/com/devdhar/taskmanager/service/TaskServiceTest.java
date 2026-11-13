@@ -1,7 +1,7 @@
 package com.devdhar.taskmanager.service;
 
-import com.devdhar.taskmanager.dto.TaskDtos.TaskRequest;
 import com.devdhar.taskmanager.dto.TaskDtos.TaskResponse;
+import com.devdhar.taskmanager.dto.TaskDtos.TaskUpdateRequest;
 import com.devdhar.taskmanager.entity.Task;
 import com.devdhar.taskmanager.entity.User;
 import com.devdhar.taskmanager.exception.ResourceNotFoundException;
@@ -83,7 +83,7 @@ class TaskServiceTest {
         when(authUtils.getCurrentUserId()).thenReturn(CURRENT_USER_ID);
         when(taskRepository.findById(TASK_ID)).thenReturn(Optional.of(taskOwnedBy(OTHER_USER_ID)));
 
-        TaskRequest request = new TaskRequest("Hijacked", null, null, null, null);
+        TaskUpdateRequest request = new TaskUpdateRequest("Hijacked", null, null, null, null);
 
         assertThrows(ResourceNotFoundException.class, () -> taskService.updateTask(TASK_ID, request));
         verify(taskRepository, never()).save(any(Task.class));
@@ -106,7 +106,7 @@ class TaskServiceTest {
         when(taskRepository.save(any(Task.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Mirrors the agent flow for "mark task 5 as done": status only, everything else null.
-        TaskRequest statusOnly = new TaskRequest(null, null, Task.TaskStatus.COMPLETED, null, null);
+        TaskUpdateRequest statusOnly = new TaskUpdateRequest(null, null, Task.TaskStatus.COMPLETED, null, null);
 
         TaskResponse response = taskService.updateTask(TASK_ID, statusOnly);
 
