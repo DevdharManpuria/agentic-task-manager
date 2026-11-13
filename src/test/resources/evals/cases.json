@@ -1,0 +1,233 @@
+[
+  {
+    "id": "create-01", "category": "create",
+    "command": "add a task to buy milk",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "milk", "status": "PENDING" } ] }
+  },
+  {
+    "id": "create-02", "category": "create",
+    "command": "remind me to finish the quarterly report, it's high priority",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "report", "priority": "HIGH" } ] }
+  },
+  {
+    "id": "create-03", "category": "create",
+    "command": "add a task: call the dentist tomorrow",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "dentist", "dueDate": "+1d" } ] }
+  },
+  {
+    "id": "create-04", "category": "create",
+    "command": "I need to submit the tax form in 3 days",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "tax", "dueDate": "+3d" } ] }
+  },
+  {
+    "id": "create-05", "category": "create",
+    "command": "create a low priority task: prepare slides, due Monday",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "slides", "priority": "LOW", "dueDate": "next:MONDAY" } ] }
+  },
+  {
+    "id": "create-06", "category": "create",
+    "command": "add a task 'Renew passport' with the description 'Check the office hours first'",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "passport", "descriptionContains": "office hours" } ] }
+  },
+
+  {
+    "id": "phrasing-01", "category": "phrasing",
+    "command": "don't let me forget to water the plants, low priority",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "plants", "priority": "LOW" } ] }
+  },
+  {
+    "id": "phrasing-02", "category": "phrasing",
+    "command": "add a task to email the landlord about the leak, make it high priority",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "landlord", "priority": "HIGH" } ] }
+  },
+
+  {
+    "id": "update-id-01", "category": "update-by-id",
+    "seedTasks": [ { "title": "Write report", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+7d" } ],
+    "command": "mark task {{id:Write report}} as completed",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "Write report", "status": "COMPLETED" } ] }
+  },
+  {
+    "id": "update-id-02", "category": "update-by-id",
+    "seedTasks": [ { "title": "Pay rent", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+5d" } ],
+    "command": "set the priority of task {{id:Pay rent}} to low",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "Pay rent", "priority": "LOW", "status": "PENDING" } ] }
+  },
+  {
+    "id": "update-id-03", "category": "update-by-id",
+    "seedTasks": [ { "title": "Book flights", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+20d" } ],
+    "command": "change the due date of task {{id:Book flights}} to tomorrow",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "Book flights", "dueDate": "+1d" } ] }
+  },
+
+  {
+    "id": "update-name-01", "category": "update-by-name",
+    "seedTasks": [
+      { "title": "Write quarterly report", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+7d" },
+      { "title": "Buy groceries", "status": "PENDING", "priority": "LOW", "dueDate": "+2d" }
+    ],
+    "command": "mark my report task as complete",
+    "expect": { "taskCount": 2, "tasks": [
+      { "titleContains": "report", "status": "COMPLETED" },
+      { "titleContains": "groceries", "status": "PENDING" }
+    ] }
+  },
+  {
+    "id": "update-name-02", "category": "update-by-name",
+    "seedTasks": [
+      { "title": "Dentist appointment", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+9d" },
+      { "title": "Gym session", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+1d" }
+    ],
+    "command": "make the dentist appointment high priority",
+    "expect": { "taskCount": 2, "tasks": [
+      { "titleContains": "Dentist", "priority": "HIGH" },
+      { "titleContains": "Gym", "priority": "MEDIUM" }
+    ] }
+  },
+  {
+    "id": "update-name-03", "category": "update-by-name",
+    "seedTasks": [
+      { "title": "Do laundry", "status": "PENDING", "priority": "LOW", "dueDate": "+3d" },
+      { "title": "Clean kitchen", "status": "PENDING", "priority": "LOW", "dueDate": "+4d" }
+    ],
+    "command": "I've started the laundry",
+    "expect": { "taskCount": 2, "tasks": [
+      { "titleContains": "laundry", "status": "IN_PROGRESS" },
+      { "titleContains": "kitchen", "status": "PENDING" }
+    ] }
+  },
+  {
+    "id": "update-name-04", "category": "update-by-name",
+    "seedTasks": [
+      { "title": "Buy groceries", "status": "PENDING", "priority": "LOW", "dueDate": "+2d" },
+      { "title": "Pay electricity bill", "status": "PENDING", "priority": "HIGH", "dueDate": "+6d" }
+    ],
+    "command": "rename the groceries task to 'Weekly groceries'",
+    "expect": { "taskCount": 2, "absent": [ "Buy groceries" ], "tasks": [
+      { "titleContains": "Weekly groceries" },
+      { "titleContains": "electricity", "priority": "HIGH" }
+    ] }
+  },
+  {
+    "id": "update-name-05", "category": "update-by-name",
+    "seedTasks": [ { "title": "Call mom", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+2d" } ],
+    "command": "push the call mom task to Monday",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "Call mom", "dueDate": "next:MONDAY" } ] }
+  },
+
+  {
+    "id": "delete-id-01", "category": "delete-by-id",
+    "seedTasks": [
+      { "title": "Old task", "status": "PENDING", "priority": "LOW", "dueDate": "+1d" },
+      { "title": "Keep me", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+2d" }
+    ],
+    "command": "delete task {{id:Old task}}",
+    "expect": { "taskCount": 1, "absent": [ "Old task" ], "tasks": [ { "titleContains": "Keep me" } ] }
+  },
+  {
+    "id": "delete-name-01", "category": "delete-by-name",
+    "seedTasks": [
+      { "title": "Buy groceries", "status": "PENDING", "priority": "LOW", "dueDate": "+2d" },
+      { "title": "Write report", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+5d" }
+    ],
+    "command": "delete the groceries task",
+    "expect": { "taskCount": 1, "absent": [ "groceries" ], "tasks": [ { "titleContains": "report" } ] }
+  },
+  {
+    "id": "delete-name-02", "category": "delete-by-name",
+    "seedTasks": [
+      { "title": "Gym session", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+1d" },
+      { "title": "Pay rent", "status": "PENDING", "priority": "HIGH", "dueDate": "+4d" }
+    ],
+    "command": "remove the gym task",
+    "expect": { "taskCount": 1, "absent": [ "Gym" ], "tasks": [ { "titleContains": "rent" } ] }
+  },
+  {
+    "id": "delete-name-03", "category": "delete-by-name",
+    "seedTasks": [
+      { "title": "Dentist appointment", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+9d" },
+      { "title": "Do laundry", "status": "PENDING", "priority": "LOW", "dueDate": "+3d" }
+    ],
+    "command": "cancel my dentist appointment",
+    "expect": { "taskCount": 1, "absent": [ "Dentist" ], "tasks": [ { "titleContains": "laundry" } ] }
+  },
+
+  {
+    "id": "list-01", "category": "list",
+    "seedTasks": [
+      { "title": "Fix login bug", "status": "PENDING", "priority": "HIGH", "dueDate": "+2d" },
+      { "title": "Water plants", "status": "PENDING", "priority": "LOW", "dueDate": "+1d" },
+      { "title": "Plan trip", "status": "IN_PROGRESS", "priority": "MEDIUM", "dueDate": "+30d" }
+    ],
+    "command": "what tasks do I have?",
+    "expect": { "taskCount": 3, "replyMustContain": [ "Fix login bug", "Water plants", "Plan trip" ] }
+  },
+  {
+    "id": "list-02", "category": "list",
+    "seedTasks": [
+      { "title": "Fix login bug", "status": "PENDING", "priority": "HIGH", "dueDate": "+2d" },
+      { "title": "Water plants", "status": "PENDING", "priority": "LOW", "dueDate": "+1d" },
+      { "title": "Plan trip", "status": "PENDING", "priority": "HIGH", "dueDate": "+30d" }
+    ],
+    "command": "show me my high priority tasks",
+    "expect": { "taskCount": 3, "replyMustContain": [ "Fix login bug", "Plan trip" ], "replyMustNotContain": [ "Water plants" ] }
+  },
+  {
+    "id": "list-03", "category": "list",
+    "seedTasks": [
+      { "title": "Submit invoice", "status": "COMPLETED", "priority": "MEDIUM", "dueDate": "+1d" },
+      { "title": "Renew passport", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+10d" }
+    ],
+    "command": "what's still pending?",
+    "expect": { "taskCount": 2, "replyMustContain": [ "Renew passport" ], "replyMustNotContain": [ "Submit invoice" ] }
+  },
+
+  {
+    "id": "multi-01", "category": "multi-step",
+    "seedTasks": [
+      { "title": "Fix login bug", "status": "PENDING", "priority": "HIGH", "dueDate": "+2d" },
+      { "title": "Review pull request", "status": "PENDING", "priority": "HIGH", "dueDate": "+3d" },
+      { "title": "Water plants", "status": "PENDING", "priority": "LOW", "dueDate": "+1d" }
+    ],
+    "command": "mark all my high priority tasks as completed",
+    "expect": { "taskCount": 3, "tasks": [
+      { "titleContains": "login bug", "status": "COMPLETED" },
+      { "titleContains": "pull request", "status": "COMPLETED" },
+      { "titleContains": "plants", "status": "PENDING" }
+    ] }
+  },
+  {
+    "id": "multi-02", "category": "multi-step",
+    "seedTasks": [
+      { "title": "Submit invoice", "status": "COMPLETED", "priority": "MEDIUM", "dueDate": "+1d" },
+      { "title": "File taxes", "status": "COMPLETED", "priority": "HIGH", "dueDate": "+2d" },
+      { "title": "Plan trip", "status": "PENDING", "priority": "MEDIUM", "dueDate": "+30d" }
+    ],
+    "command": "delete all my completed tasks",
+    "expect": { "taskCount": 1, "absent": [ "invoice", "taxes" ], "tasks": [ { "titleContains": "Plan trip" } ] }
+  },
+  {
+    "id": "multi-03", "category": "multi-step",
+    "command": "add two tasks: buy milk and call mom",
+    "expect": { "taskCount": 2, "tasks": [ { "titleContains": "milk" }, { "titleContains": "mom" } ] }
+  },
+
+  {
+    "id": "not-found-01", "category": "not-found",
+    "seedTasks": [ { "title": "Buy groceries", "status": "PENDING", "priority": "LOW", "dueDate": "+2d" } ],
+    "command": "delete my gym task",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "groceries", "status": "PENDING" } ] }
+  },
+
+  {
+    "id": "off-topic-01", "category": "off-topic",
+    "seedTasks": [ { "title": "Buy groceries", "status": "PENDING", "priority": "LOW", "dueDate": "+2d" } ],
+    "command": "what's the weather like today?",
+    "expect": { "taskCount": 1, "tasks": [ { "titleContains": "groceries", "status": "PENDING" } ] }
+  },
+  {
+    "id": "off-topic-02", "category": "off-topic",
+    "command": "tell me a joke",
+    "expect": { "taskCount": 0 }
+  }
+]
