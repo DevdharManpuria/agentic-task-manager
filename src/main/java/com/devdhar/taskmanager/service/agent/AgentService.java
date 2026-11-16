@@ -123,7 +123,9 @@ public class AgentService {
             log.error("Agent command failed", ex);
             success = false;
             errorDetail = ex.toString();
-            finalMessage = "Sorry, something went wrong while handling that. Please try again.";
+            finalMessage = String.valueOf(ex.getMessage()).contains("429")
+                    ? "The AI service is busy right now (rate limit). Please try again in a minute."
+                    : "Sorry, something went wrong while handling that. Please try again.";
         }
 
         Confirmation confirmation = null;
