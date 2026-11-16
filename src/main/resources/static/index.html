@@ -8,7 +8,7 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f4f2ec;
@@ -27,7 +27,7 @@
     --radius: 12px;
     --shadow: 0 1px 2px rgb(28 27 24 / 6%), 0 8px 24px rgb(28 27 24 / 7%);
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-    font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -193,7 +193,6 @@
   .entry .msg { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; max-width: 62ch; }
   .entry.failed .msg { color: var(--danger); }
   .entry.working .msg { color: var(--muted); }
-  .entry.working .msg::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 8px; border-radius: 50%; background: var(--accent); animation: pulse 1s ease-in-out infinite; }
   ol.steplist { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
   ol.steplist li { display: flex; gap: 8px; align-items: flex-start; font-size: 0.8125rem; color: var(--muted); overflow-wrap: anywhere; }
   ol.steplist svg { width: 14px; height: 14px; margin-top: 3px; stroke-width: 2.2; }
@@ -624,7 +623,7 @@ $("#commandForm").addEventListener("submit", async (e) => {
   if (!text) return;
   busy = true;
   $("#run").disabled = true; $("#runLabel").textContent = "Working";
-  const working = pushLog({ asked: text, message: "Working on it", working: true });
+  const working = pushLog({ asked: text, message: "Working on it…", working: true });
   try {
     const result = await api("/api/agent/command", { method: "POST", body: JSON.stringify({ command: text }) });
     Object.assign(working, { message: result.message, success: result.success, steps: result.steps, confirmation: result.confirmation, working: false, fresh: true });
