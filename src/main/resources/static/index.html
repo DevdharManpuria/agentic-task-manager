@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Task Agent</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f6f5f1;
+    --surface: #fffefb;
+    --ink: #1c1b18;
+    --muted: #6b675e;
+    --line: #e4e1d8;
+    --accent: #1f5f4a;
+    --accent-ink: #ffffff;
+    --accent-soft: #e3efe9;
+    --danger: #a63d2f;
+    --danger-soft: #f6e4e0;
+    --late: #9a5b00;
+    --flash: #fff0c2;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgb(28 27 24 / 6%), 0 6px 20px rgb(28 27 24 / 6%);
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141412; --surface: #1b1b18; --ink: #ecebe5; --muted: #9b978c; --line: #2c2b27;
+      --accent: #5fb89a; --accent-ink: #0d1f19; --accent-soft: #1d2b26;
+      --danger: #e07a68; --danger-soft: #33201c; --late: #e0a64a; --flash: #3a3216;
+      --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 6px 20px rgb(0 0 0 / 30%);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141412; --surface: #1b1b18; --ink: #ecebe5; --muted: #9b978c; --line: #2c2b27;
+    --accent: #5fb89a; --accent-ink: #0d1f19; --accent-soft: #1d2b26;
+    --danger: #e07a68; --danger-soft: #33201c; --late: #e0a64a; --flash: #3a3216;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 6px 20px rgb(0 0 0 / 30%);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-size: 16px; line-height: 1.5; min-height: 100dvh;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 0 64px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+  h1 { font-size: 1.375rem; letter-spacing: -0.02em; margin: 0; font-weight: 650; text-wrap: balance; }
+  .who { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 0.875rem; }
+  .linkbtn { background: none; border: 0; padding: 6px 2px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+  .linkbtn:hover { color: var(--ink); }
+
+  /* ---- sign in ---- */
+  .wrap:has(#auth:not([hidden])) { max-width: 1040px; }
+  .auth { margin: 9vh auto 0; }
+  .landing { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 72px; align-items: center; }
+  .landing > * { animation: rise 520ms var(--ease) both; }
+  .landing > .demo { animation-delay: 140ms; }
+  .auth h1 { font-size: clamp(2rem, 4.2vw, 2.875rem); line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 14px; }
+  .auth p.lede { margin: 0 0 26px; color: var(--muted); max-width: 40ch; }
+  .auth p.lede strong { color: var(--ink); font-weight: 600; }
+  /* The product's own UI, shown as it really looks. Static: it is a picture of the real components. */
+  .demo { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); user-select: none; }
+  .demo .reply { margin-top: 0; }
+  .demo .confirm { margin-top: 12px; }
+  .demo ul.tasks { margin-top: 18px; }
+  .demo li.task { padding: 12px 2px; }
+  .demo li.task:last-child { border-bottom: 0; padding-bottom: 0; }
+  .field { display: block; margin-bottom: 14px; }
+  .field span { display: block; font-size: 0.875rem; margin-bottom: 4px; color: var(--muted); }
+  input[type=text], input[type=email], input[type=password] {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); min-height: 44px;
+  }
+  input::placeholder { color: var(--muted); opacity: 0.8; }
+  input:focus-visible { outline-offset: 0; }
+  .btn {
+    min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); font-weight: 560;
+    transition: transform 120ms var(--ease), background-color 120ms var(--ease);
+  }
+  .btn:hover { background: var(--accent-soft); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0) scale(0.98); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .btn[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .auth .btn { width: 100%; margin-top: 4px; }
+  .switch { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
+  .error { color: var(--danger); font-size: 0.9rem; margin: 10px 0 0; min-height: 1.4em; }
+
+  /* ---- command bar ---- */
+  form.command { display: flex; gap: 8px; }
+  form.command input { flex: 1; min-width: 0; font-size: 1.0625rem; min-height: 52px; padding: 0 16px; border-radius: 12px; box-shadow: var(--shadow); }
+  form.command .btn { min-height: 52px; min-width: 88px; border-radius: 12px; }
+
+  .reply { margin-top: 14px; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .reply.enter { animation: rise 320ms var(--ease) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .reply .asked { color: var(--muted); font-size: 0.875rem; margin: 0 0 6px; overflow-wrap: anywhere; }
+  .reply .msg { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 65ch; }
+  .reply.failed .msg { color: var(--danger); }
+  .reply.working .msg { color: var(--muted); }
+  details.steps { margin-top: 12px; font-size: 0.875rem; color: var(--muted); }
+  details.steps summary { cursor: pointer; width: fit-content; padding: 4px 0; }
+  details.steps ol { margin: 6px 0 0; padding-left: 20px; }
+  details.steps li { margin: 4px 0; overflow-wrap: anywhere; }
+  details.steps code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 0.8125rem; color: var(--ink); }
+  .step-err { color: var(--danger); }
+
+  .confirm { margin-top: 14px; padding: 14px 16px; border-radius: 10px; background: var(--danger-soft); }
+  .confirm p { margin: 0 0 8px; font-weight: 600; }
+  .confirm ul { margin: 0 0 12px; padding-left: 20px; overflow-wrap: anywhere; }
+  .confirm .row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* ---- task list ---- */
+  .listhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 32px 0 8px; flex-wrap: wrap; }
+  .listhead h2 { font-size: 1rem; margin: 0; font-weight: 650; }
+  .seg { display: flex; gap: 2px; background: var(--line); padding: 2px; border-radius: 10px; }
+  .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: 8px; font-size: 0.875rem; color: var(--muted); min-height: 36px; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 10%); font-weight: 560; }
+  ul.tasks { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  li.task { display: grid; grid-template-columns: 28px 1fr auto; gap: 4px 12px; align-items: start; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+  li.task.flash { animation: flash 1600ms var(--ease) both; }
+  @keyframes flash { from { background: var(--flash); } to { background: transparent; } }
+  .check { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--muted); background: transparent; display: grid; place-items: center; padding: 0; margin-top: -1px; transition: background-color 150ms var(--ease), border-color 150ms var(--ease); }
+  .check:hover { border-color: var(--accent); }
+  .check svg { width: 16px; height: 16px; stroke: var(--accent-ink); opacity: 0; transition: opacity 120ms var(--ease); }
+  .check[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+  .check[aria-checked="true"] svg { opacity: 1; }
+  .check.partial { border-color: var(--accent); border-style: dashed; }
+  .title { overflow-wrap: anywhere; }
+  .done .title { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted); }
+  .desc { grid-column: 2; margin: 0; color: var(--muted); font-size: 0.875rem; overflow-wrap: anywhere; max-width: 65ch; }
+  .meta { text-align: right; font-size: 0.8125rem; color: var(--muted); white-space: nowrap; }
+  .meta .pri-high { color: var(--ink); font-weight: 650; }
+  .meta .late { color: var(--late); font-weight: 600; }
+  .empty { padding: 36px 0; color: var(--muted); text-align: left; max-width: 46ch; }
+  .empty strong { color: var(--ink); display: block; margin-bottom: 4px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (max-width: 880px) {
+    .landing { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+    .auth { margin-top: 5vh; }
+  }
+  @media (max-width: 520px) {
+    li.task { grid-template-columns: 28px 1fr; }
+    .meta { grid-column: 2; text-align: left; }
+    form.command .btn { min-width: 72px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <section class="auth" id="auth" hidden>
+   <div class="landing">
+    <div class="pitch">
+    <h1>Manage your tasks by typing what you want done.</h1>
+    <p class="lede">An AI agent turns plain sentences into checked changes to your task list. <strong>Every delete waits for your confirmation.</strong></p>
+    <form id="authForm" novalidate>
+      <label class="field"><span>Username</span><input type="text" id="username" autocomplete="username" required></label>
+      <label class="field" id="emailField" hidden><span>Email</span><input type="email" id="email" autocomplete="email"></label>
+      <label class="field"><span>Password</span><input type="password" id="password" autocomplete="current-password" required></label>
+      <button class="btn primary" id="authSubmit" type="submit">Sign in</button>
+      <p class="error" id="authError" role="alert"></p>
+    </form>
+    <p class="switch"><span id="switchText">New here?</span> <button class="linkbtn" id="switchBtn" type="button">Create an account</button></p>
+    </div>
+    <div class="demo" aria-hidden="true">
+      <div class="reply">
+        <p class="asked">Move the report to Friday and delete the dentist task</p>
+        <p class="msg">Moved “Write quarterly report” to Friday. Please confirm deleting “Call the dentist”.</p>
+        <details class="steps" open>
+          <summary>What I did (3 steps)</summary>
+          <ol>
+            <li><code>listTasks</code> (titleContains: report)</li>
+            <li><code>updateTask</code> (taskId: 1, dueDate: Friday)</li>
+            <li><code>deleteTask</code> (taskId: 2) — waiting for you</li>
+          </ol>
+        </details>
+      </div>
+      <div class="confirm">
+        <p>This task will be deleted:</p>
+        <ul><li>Call the dentist</li></ul>
+        <div class="row"><span class="btn danger" style="display:inline-grid;place-items:center">Delete task</span><span class="btn" style="display:inline-grid;place-items:center">Keep</span></div>
+      </div>
+      <ul class="tasks">
+        <li class="task"><span class="check partial"></span><div class="title">Write quarterly report</div><div class="meta num"><span class="pri-high">High</span> · Friday</div></li>
+        <li class="task done"><span class="check" aria-checked="true"><svg viewBox="0 0 16 16" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg></span><div class="title">Buy milk</div><div class="meta num"><span>Low</span> · No date</div></li>
+      </ul>
+    </div>
+   </div>
+  </section>
+
+  <section id="app" hidden>
+    <header class="top">
+      <h1>Task Agent</h1>
+      <div class="who"><span id="whoami"></span><button class="linkbtn" id="signout" type="button">Sign out</button></div>
+    </header>
+
+    <form class="command" id="commandForm" autocomplete="off">
+      <label class="sr" for="command">Tell the agent what to do</label>
+      <input type="text" id="command" maxlength="500" placeholder="Add a report task for Friday, high priority" required>
+      <button class="btn primary" id="run" type="submit">Run</button>
+    </form>
+
+    <div id="replyArea" aria-live="polite"></div>
+
+    <div class="listhead">
+      <h2>Your tasks <span class="num" id="count"></span></h2>
+      <div class="seg" role="group" aria-label="Filter tasks" id="filters">
+        <button type="button" data-f="ALL" aria-pressed="true">All</button>
+        <button type="button" data-f="PENDING" aria-pressed="false">To do</button>
+        <button type="button" data-f="IN_PROGRESS" aria-pressed="false">Doing</button>
+        <button type="button" data-f="COMPLETED" aria-pressed="false">Done</button>
+      </div>
+    </div>
+    <ul class="tasks" id="tasks"></ul>
+    <div class="empty" id="empty" hidden></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (sel) => document.querySelector(sel);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage blocked: stay signed in for this page only */ } },
+  del(k) { try { localStorage.removeItem(k); } catch { /* ignore */ } },
+};
+
+let token = store.get("token");
+let username = store.get("user");
+let tasks = [];
+let filter = "ALL";
+let registering = false;
+let busy = false;
+
+// Task text comes from users and from the model, so it is only ever inserted as text, never as HTML.
+function el(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) node.append(c);
+  return node;
+}
+
+async function api(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) };
+  const res = await fetch(path, { ...options, headers });
+  const body = await res.json().catch(() => null);
+  if (res.status === 401 && token && !path.startsWith("/api/auth")) {
+    signOut();
+    throw new Error("Your session expired. Please sign in again.");
+  }
+  if (!res.ok) {
+    const fields = body && body.fieldErrors ? Object.values(body.fieldErrors).join(" ") : null;
+    throw new Error((body && body.error) || fields || "Something went wrong. Please try again.");
+  }
+  return body;
+}
+
+/* ---------- auth ---------- */
+function showAuth() {
+  $("#app").hidden = true;
+  $("#auth").hidden = false;
+  $("#username").focus();
+}
+function showApp() {
+  $("#auth").hidden = true;
+  $("#app").hidden = false;
+  $("#whoami").textContent = username || "";
+  $("#command").focus();
+  loadTasks();
+}
+function signOut() {
+  token = null; username = null; tasks = [];
+  store.del("token"); store.del("user");
+  $("#replyArea").replaceChildren();
+  showAuth();
+}
+function setMode(register) {
+  registering = register;
+  $("#emailField").hidden = !register;
+  $("#authSubmit").textContent = register ? "Create account" : "Sign in";
+  $("#password").autocomplete = register ? "new-password" : "current-password";
+  $("#switchText").textContent = register ? "Already have an account?" : "New here?";
+  $("#switchBtn").textContent = register ? "Sign in" : "Create an account";
+  $("#authError").textContent = "";
+}
+$("#switchBtn").addEventListener("click", () => setMode(!registering));
+$("#signout").addEventListener("click", signOut);
+
+$("#authForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const submit = $("#authSubmit");
+  submit.disabled = true;
+  $("#authError").textContent = "";
+  try {
+    const name = $("#username").value.trim();
+    const password = $("#password").value;
+    if (registering) {
+      await api("/api/auth/register", { method: "POST", body: JSON.stringify({ username: name, email: $("#email").value.trim(), password }) });
+    }
+    const auth = await api("/api/auth/login", { method: "POST", body: JSON.stringify({ username: name, password }) });
+    token = auth.token; username = auth.username;
+    store.set("token", token); store.set("user", username);
+    $("#password").value = "";
+    showApp();
+  } catch (err) {
+    $("#authError").textContent = err.message;
+  } finally {
+    submit.disabled = false;
+  }
+});
+
+/* ---------- tasks ---------- */
+async function loadTasks({ highlightChanges = false } = {}) {
+  try {
+    const page = await api("/api/tasks?size=100&sort=dueDate");
+    const before = new Map(tasks.map((t) => [t.id, JSON.stringify(t)]));
+    tasks = page.content;
+    const changed = highlightChanges
+      ? new Set(tasks.filter((t) => before.get(t.id) !== JSON.stringify(t)).map((t) => t.id))
+      : new Set();
+    renderTasks(changed);
+  } catch (err) {
+    showReply({ message: err.message, success: false });
+  }
+}
+
+const PRIORITY = { HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
+const dayMs = 86400000;
+
+function dueLabel(iso) {
+  if (!iso) return { text: "No date", late: false };
+  const [y, m, d] = iso.split("-").map(Number);
+  const due = new Date(y, m - 1, d);
+  const now = new Date();
+  const days = Math.round((due - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / dayMs);
+  const short = due.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  if (days < 0) return { text: "Overdue, " + short, late: true };
+  if (days === 0) return { text: "Today", late: false };
+  if (days === 1) return { text: "Tomorrow", late: false };
+  if (days < 7) return { text: due.toLocaleDateString(undefined, { weekday: "long" }), late: false };
+  return { text: short, late: false };
+}
+
+const checkIcon = () => {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 16 16"); svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke-width", "2"); svg.setAttribute("stroke-linecap", "round"); svg.setAttribute("stroke-linejoin", "round");
+  const path = document.createElementNS(ns, "path");
+  path.setAttribute("d", "M3.5 8.5l3 3 6-7");
+  svg.append(path);
+  return svg;
+};
+
+function renderTasks(changed = new Set()) {
+  const list = $("#tasks");
+  const shown = tasks.filter((t) => filter === "ALL" || t.status === filter);
+  list.replaceChildren(...shown.map((t) => taskRow(t, changed.has(t.id))));
+  $("#count").textContent = tasks.length ? "(" + tasks.length + ")" : "";
+
+  const empty = $("#empty");
+  empty.hidden = shown.length > 0;
+  if (shown.length === 0) {
+    empty.replaceChildren(
+      el("strong", {}, tasks.length ? "Nothing in this view." : "No tasks yet."),
+      tasks.length ? "Try another filter." : "Type what you need to do in the box above, for example “remind me to call the dentist tomorrow”."
+    );
+  }
+}
+
+function taskRow(t, flash) {
+  const done = t.status === "COMPLETED";
+  const due = dueLabel(t.dueDate);
+  const check = el("button", {
+    class: "check" + (t.status === "IN_PROGRESS" ? " partial" : ""),
+    type: "button", role: "checkbox",
+    "aria-checked": String(done),
+    "aria-label": (done ? "Mark as to do: " : "Mark as done: ") + t.title,
+    onclick: () => toggle(t),
+  }, checkIcon());
+  const meta = el("div", { class: "meta num" },
+    el("span", { class: "pri-" + t.priority.toLowerCase() }, PRIORITY[t.priority] || t.priority),
+    " · ",
+    el("span", { class: due.late ? "late" : "" }, due.text));
+  const row = el("li", { class: "task" + (done ? " done" : "") + (flash ? " flash" : "") },
+    check, el("div", { class: "title" }, t.title), meta);
+  if (t.description) row.append(el("p", { class: "desc" }, t.description));
+  return row;
+}
+
+async function toggle(t) {
+  try {
+    await api("/api/tasks/" + t.id, { method: "PUT", body: JSON.stringify({ status: t.status === "COMPLETED" ? "PENDING" : "COMPLETED" }) });
+    await loadTasks({ highlightChanges: true });
+  } catch (err) {
+    showReply({ message: err.message, success: false });
+  }
+}
+
+$("#filters").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-f]");
+  if (!btn) return;
+  filter = btn.dataset.f;
+  document.querySelectorAll("#filters button").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+  renderTasks();
+});
+
+/* ---------- agent ---------- */
+function describeStep(step) {
+  let error = null;
+  try { const out = JSON.parse(step.output); if (out.ok === false) error = out.error; } catch { /* plain text output */ }
+  const args = Object.entries(step.arguments || {}).map(([k, v]) => k + ": " + v).join(", ");
+  const li = el("li", {}, el("code", {}, step.tool), args ? " (" + args + ")" : "");
+  if (!step.ok || error) li.append(" ", el("span", { class: "step-err" }, "— " + (error || "failed")));
+  return li;
+}
+
+function showReply({ asked, message, success, steps = [], confirmation = null, working = false }) {
+  const box = el("div", { class: "reply enter" + (success === false ? " failed" : "") + (working ? " working" : "") });
+  if (asked) box.append(el("p", { class: "asked" }, asked));
+  box.append(el("p", { class: "msg" }, message));
+  if (steps.length) {
+    box.append(el("details", { class: "steps" },
+      el("summary", {}, "What I did (" + steps.length + (steps.length === 1 ? " step" : " steps") + ")"),
+      el("ol", {}, ...steps.map(describeStep))));
+  }
+  const area = $("#replyArea");
+  area.replaceChildren(box);
+  if (confirmation) area.append(confirmBlock(confirmation));
+}
+
+function confirmBlock(c) {
+  const n = c.taskTitles.length;
+  const yes = el("button", { class: "btn danger", type: "button", onclick: () => settle(c.id, "POST", yes, no) }, n === 1 ? "Delete task" : "Delete " + n + " tasks");
+  const no = el("button", { class: "btn", type: "button", onclick: () => settle(c.id, "DELETE", yes, no) }, "Keep");
+  return el("div", { class: "confirm" },
+    el("p", {}, n === 1 ? "This task will be deleted:" : "These " + n + " tasks will be deleted:"),
+    el("ul", {}, ...c.taskTitles.map((title) => el("li", {}, title))),
+    el("div", { class: "row" }, yes, no));
+}
+
+async function settle(id, method, ...buttons) {
+  buttons.forEach((b) => (b.disabled = true));
+  try {
+    const result = await api("/api/agent/confirm/" + encodeURIComponent(id), { method });
+    showReply({ message: result.message, success: true, steps: result.steps });
+    await loadTasks({ highlightChanges: true });
+  } catch (err) {
+    showReply({ message: err.message.includes("not found") ? "That confirmation has expired. Ask again to delete it." : err.message, success: false });
+  }
+}
+
+$("#commandForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (busy) return;
+  const input = $("#command");
+  const text = input.value.trim();
+  if (!text) return;
+  busy = true;
+  $("#run").disabled = true; $("#run").textContent = "Working…";
+  showReply({ asked: text, message: "Working on it…", working: true });
+  try {
+    const result = await api("/api/agent/command", { method: "POST", body: JSON.stringify({ command: text }) });
+    showReply({ asked: text, message: result.message, success: result.success, steps: result.steps, confirmation: result.confirmation });
+    input.value = "";
+    await loadTasks({ highlightChanges: true });
+  } catch (err) {
+    showReply({ asked: text, message: err.message, success: false });
+  } finally {
+    busy = false;
+    $("#run").disabled = false; $("#run").textContent = "Run";
+    input.focus();
+  }
+});
+
+if (token) showApp(); else showAuth();
+</script>
+</body>
+</html>

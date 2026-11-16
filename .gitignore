@@ -5,3 +5,14 @@
 application-local.properties
 repomix-output*.xml
 *-repomix.xml
+# Local design/agent tooling installed by third-party skills (not part of the app)
+.agents/
+.codex/
+.github/agents/
+.github/hooks/
+.github/skills/
+skills-lock.json
+.impeccable/config.local.json
+.impeccable/questions/
+.impeccable/mocks/
+.impeccable/review/

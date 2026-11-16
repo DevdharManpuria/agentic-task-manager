@@ -1,0 +1,9 @@
+target
+.git
+.idea
+.agents
+.codex
+.github
+application-local.properties
+.env
+repomix-output*.xml
