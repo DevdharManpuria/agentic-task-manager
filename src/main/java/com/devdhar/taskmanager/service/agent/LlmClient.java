@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -35,30 +34,19 @@ public class LlmClient {
     }
 
     /**
-     * Sends the user's natural-language command plus our tool schemas.
-     * Returns the raw parsed JSON response so AgentService can pull out
-     * whichever tool_call the model chose.
+     * Sends the whole conversation so far (system, user, assistant and tool messages)
+     * plus our tool schemas, and returns the model's next message with token usage.
+     * The caller owns the conversation; this client keeps no state between calls.
      */
-    public JsonNode requestToolCall(String userCommand) {
+    public LlmReply chat(List<Map<String, Object>> messages) {
         Map<String, Object> requestBody = Map.of(
                 "model", model,
-                "messages", List.of(
-                        Map.of(
-                                "role", "system",
-                                "content", "You are an assistant that manages the user's tasks. "
-                                        + "Always respond by calling exactly one of the provided tools "
-                                        + "that best matches the user's request. Today's date is "
-                                        + LocalDate.now() + " (" + LocalDate.now().getDayOfWeek() + "). "
-                                        + "Resolve relative dates such as 'Friday' or 'tomorrow' against that date, "
-                                        + "and always emit dueDate as YYYY-MM-DD."
-                        ),
-                        Map.of("role", "user", "content", userCommand)
-                ),
+                "messages", messages,
                 "tools", AgentToolDefinitions.allTools(),
                 "tool_choice", "auto"
         );
 
-        return webClient.post()
+        JsonNode response = webClient.post()
                 .uri(apiUrl)
                 .header("Authorization", "Bearer " + apiKey)
                 .header("Content-Type", "application/json")
@@ -71,5 +59,6 @@ public class LlmClient {
                 )
                 .bodyToMono(JsonNode.class)
                 .block(); // simple synchronous call is fine for a single agent command endpoint
+        return LlmReply.fromResponse(response);
     }
 }

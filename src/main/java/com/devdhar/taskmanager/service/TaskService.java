@@ -52,6 +52,12 @@ public class TaskService {
     // Filtering + pagination combined via Specification, so callers can pass any subset
     // of (status, priority) and still get a paged, sorted result.
     public Page<TaskResponse> listTasks(Task.TaskStatus status, Task.TaskPriority priority, Pageable pageable) {
+        return listTasks(status, priority, null, pageable);
+    }
+
+    // titleContains is a case-insensitive "contains" match; the agent uses it to find a task's id from its name.
+    public Page<TaskResponse> listTasks(Task.TaskStatus status, Task.TaskPriority priority,
+                                        String titleContains, Pageable pageable) {
         Long userId = authUtils.getCurrentUserId();
 
         Specification<Task> spec = (root, query, cb) -> {
@@ -62,6 +68,12 @@ public class TaskService {
             }
             if (priority != null) {
                 predicates.add(cb.equal(root.get("priority"), priority));
+            }
+            if (titleContains != null && !titleContains.isBlank()) {
+                // Escape LIKE wildcards so searching for "100%" matches the text instead of everything.
+                String escaped = titleContains.trim().toLowerCase()
+                        .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+                predicates.add(cb.like(cb.lower(root.get("title")), "%" + escaped + "%", '\\'));
             }
             return cb.and(predicates.toArray(new Predicate[0]));
         };

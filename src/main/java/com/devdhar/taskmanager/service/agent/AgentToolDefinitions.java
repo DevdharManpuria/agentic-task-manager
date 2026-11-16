@@ -58,6 +58,7 @@ public class AgentToolDefinitions {
                                 "properties", Map.of(
                                         "taskId", Map.of("type", "integer", "description", "The id of the task to update"),
                                         "title", Map.of("type", List.of("string", "null")),
+                                        "description", Map.of("type", List.of("string", "null")),
                                         "status", Map.of("type", List.of("string", "null"), "enum", Arrays.asList("PENDING", "IN_PROGRESS", "COMPLETED", null)),
                                         "priority", Map.of("type", List.of("string", "null"), "enum", Arrays.asList("LOW", "MEDIUM", "HIGH", null)),
                                         "dueDate", Map.of("type", List.of("string", "null"), "description", "YYYY-MM-DD")
@@ -73,7 +74,7 @@ public class AgentToolDefinitions {
                 "type", "function",
                 "function", Map.of(
                         "name", "deleteTask",
-                        "description", "Delete a task permanently. Use when the user wants to remove or cancel a task.",
+                        "description", "Ask to delete a task. The deletion only happens after the user confirms it, so call this and then tell the user to confirm.",
                         "parameters", Map.of(
                                 "type", "object",
                                 "properties", Map.of(
@@ -90,10 +91,11 @@ public class AgentToolDefinitions {
                 "type", "function",
                 "function", Map.of(
                         "name", "listTasks",
-                        "description", "List the user's tasks, optionally filtered by status or priority. Use when the user asks what tasks they have.",
+                        "description", "List or search the user's tasks, optionally filtered by status, priority or a word in the title. Also use it to find a task's id from its name before updating or deleting it.",
                         "parameters", Map.of(
                                 "type", "object",
                                 "properties", Map.of(
+                                        "titleContains", Map.of("type", List.of("string", "null"), "description", "Case-insensitive text the title must contain"),
                                         "status", Map.of("type", List.of("string", "null"), "enum", Arrays.asList("PENDING", "IN_PROGRESS", "COMPLETED", null)),
                                         "priority", Map.of("type", List.of("string", "null"), "enum", Arrays.asList("LOW", "MEDIUM", "HIGH", null))
                                 ),

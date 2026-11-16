@@ -1,9 +1,12 @@
 package com.devdhar.taskmanager.eval;
 
 import com.devdhar.taskmanager.service.agent.LlmClient;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.devdhar.taskmanager.service.agent.LlmReply;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Wraps the real LlmClient to count calls and tokens (from the provider's "usage" field)
@@ -37,14 +40,14 @@ class MeteredLlmClient extends LlmClient {
     long completionTokens() { return completionTokens; }
 
     @Override
-    public JsonNode requestToolCall(String userCommand) {
+    public LlmReply chat(List<Map<String, Object>> messages) {
         for (int attempt = 1; ; attempt++) {
             try {
-                JsonNode response = super.requestToolCall(userCommand);
+                LlmReply reply = super.chat(messages);
                 calls++;
-                promptTokens += response.path("usage").path("prompt_tokens").asLong(0);
-                completionTokens += response.path("usage").path("completion_tokens").asLong(0);
-                return response;
+                promptTokens += reply.promptTokens();
+                completionTokens += reply.completionTokens();
+                return reply;
             } catch (RuntimeException e) {
                 boolean rateLimited = String.valueOf(e.getMessage()).contains("429");
                 if (!rateLimited || attempt == MAX_ATTEMPTS) {
