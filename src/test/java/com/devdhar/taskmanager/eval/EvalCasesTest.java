@@ -24,7 +24,7 @@ class EvalCasesTest {
 
     @Test
     void casesFileHasEnoughCasesWithUniqueIds() {
-        assertTrue(cases.size() >= 25, "expected at least 25 cases, got " + cases.size());
+        assertTrue(cases.size() >= 90, "expected at least 90 cases, got " + cases.size());
         Set<String> ids = new HashSet<>();
         for (EvalCase c : cases) {
             assertTrue(ids.add(c.id()), "duplicate case id: " + c.id());

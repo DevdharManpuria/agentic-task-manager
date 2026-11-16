@@ -11,6 +11,8 @@ import com.devdhar.taskmanager.security.AuthUtils;
 import com.devdhar.taskmanager.security.UserDetailsImpl;
 import com.devdhar.taskmanager.service.TaskService;
 import com.devdhar.taskmanager.service.agent.AgentService;
+import com.devdhar.taskmanager.service.agent.ConfirmationStore;
+import com.devdhar.taskmanager.service.agent.ConversationMemory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,6 +68,7 @@ class AgentEvalTest {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    private final ConversationMemory memory = new ConversationMemory();
     private MeteredLlmClient llmClient;
     private AgentService agentService;
     private User user;
@@ -82,7 +85,8 @@ class AgentEvalTest {
         AuthUtils authUtils = new AuthUtils();
         TaskService taskService = new TaskService(taskRepository, userRepository, authUtils);
         agentService = new AgentService(llmClient, taskService,
-                Mockito.mock(AgentInteractionLogRepository.class), authUtils);
+                Mockito.mock(AgentInteractionLogRepository.class), authUtils,
+                new ConfirmationStore(), memory);
 
         user = userRepository.save(User.builder()
                 .username("eval-user").email("eval@example.com").password("not-used").build());
@@ -98,6 +102,11 @@ class AgentEvalTest {
     @Test
     void runAllCases() throws Exception {
         List<EvalCase> cases = EvalCase.loadAll();
+        String only = System.getProperty("eval.only"); // e.g. -Deval.only=create-08,dates-01 to debug single cases
+        if (only != null && !only.isBlank()) {
+            List<String> wanted = List.of(only.split(","));
+            cases = cases.stream().filter(c -> wanted.contains(c.id())).toList();
+        }
         long delayMs = Long.getLong("eval.delay-ms", 2000L);
         String label = System.getProperty("eval.label", "baseline");
         List<CaseResult> results = new ArrayList<>();
@@ -106,6 +115,7 @@ class AgentEvalTest {
             CaseResult result = runCase(evalCase);
             results.add(result);
             System.out.printf("[eval] %-16s %s%n", evalCase.id(), result.passed() ? "PASS" : "FAIL " + result.failures());
+            if (!result.passed() && only != null) System.out.println("[eval-reply] " + result.reply());
             Thread.sleep(delayMs); // stay under provider rate limits
         }
 
@@ -137,10 +147,11 @@ class AgentEvalTest {
         // 2. Run the agent.
         String command = evalCase.renderCommand(idsByTitle);
         llmClient.resetCounters();
+        memory.clear(user.getId()); // every case starts a fresh conversation
         long start = System.nanoTime();
         String reply;
         try {
-            reply = runAgent(command);
+            reply = runAgent(command, evalCase.confirmsDeletes());
         } catch (RuntimeException e) {
             reply = "AGENT THREW: " + e;
         }
@@ -156,15 +167,16 @@ class AgentEvalTest {
      * The only place that knows the agent's response shape. When the response changes in
      * Phase 1, only this method needs updating; the cases and checks stay the same.
      */
-    private String runAgent(String command) {
+    private String runAgent(String command, boolean confirmDeletes) {
         CommandResponse response = agentService.processCommand(command);
-        String resultJson;
-        try {
-            resultJson = mapper.writeValueAsString(response.result());
-        } catch (Exception e) {
-            resultJson = String.valueOf(response.result());
+        StringBuilder reply = new StringBuilder(response.message());
+        response.steps().forEach(step -> reply.append(' ').append(step.output()));
+        // A simulated user who clicks "Confirm". Cases with confirmsDeletes=false simulate a user who
+        // never confirms, which is how the injection cases prove nothing is deleted on the model's say-so.
+        if (response.confirmation() != null && confirmDeletes) {
+            reply.append(' ').append(agentService.confirm(response.confirmation().id()).message());
         }
-        return response.message() + " " + resultJson;
+        return reply.toString();
     }
 
     private List<String> check(EvalCase evalCase, String reply, LocalDate today) {

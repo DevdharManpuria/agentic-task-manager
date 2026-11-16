@@ -23,7 +23,8 @@ public record EvalCase(
         String category,
         List<SeedTask> seedTasks,
         String command,
-        Expect expect
+        Expect expect,
+        Boolean autoConfirm
 ) {
 
     public record SeedTask(String title, String description, String status, String priority, String dueDate) {}
@@ -44,14 +45,25 @@ public record EvalCase(
     private static final Pattern ID_PLACEHOLDER = Pattern.compile("\\{\\{id:([^}]+)}}");
 
     public static List<EvalCase> loadAll() {
-        try (InputStream in = EvalCase.class.getResourceAsStream("/evals/cases.json")) {
-            if (in == null) {
-                throw new IllegalStateException("evals/cases.json not found on the test classpath");
+        // cases.json is the original set the baseline was measured on; cases-extended.json adds
+        // the cases for the new behaviour (confirmation, injection, ambiguity, more phrasing/dates).
+        List<EvalCase> all = new java.util.ArrayList<>();
+        for (String file : List.of("/evals/cases.json", "/evals/cases-extended.json")) {
+            try (InputStream in = EvalCase.class.getResourceAsStream(file)) {
+                if (in == null) {
+                    throw new IllegalStateException(file + " not found on the test classpath");
+                }
+                all.addAll(List.of(new ObjectMapper().readValue(in, EvalCase[].class)));
+            } catch (IOException e) {
+                throw new IllegalStateException("Could not parse " + file, e);
             }
-            return List.of(new ObjectMapper().readValue(in, EvalCase[].class));
-        } catch (IOException e) {
-            throw new IllegalStateException("Could not parse evals/cases.json", e);
         }
+        return List.copyOf(all);
+    }
+
+    /** Whether the simulated user clicks Confirm on proposed deletes (default yes). */
+    public boolean confirmsDeletes() {
+        return autoConfirm == null || autoConfirm;
     }
 
     public List<SeedTask> seeds() {
